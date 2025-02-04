@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/providers/address_provider.dart';
-import 'package:provider/provider.dart'; // Import AddressProvider
-import 'order_confirmation_page.dart'; // Your order confirmation page
+import 'package:flutter_application_1/screen/map.dart';
+import 'package:provider/provider.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'order_confirmation_page.dart';
+
 
 class AddressPage extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -18,36 +21,41 @@ class _AddressPageState extends State<AddressPage> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
-  bool _isAddingNewAddress = false; // Track whether the user wants to add a new address
+  bool _isAddingNewAddress = false;
+  LatLng? _selectedLocation;
 
   @override
   void initState() {
     super.initState();
-    // Load the saved address when the page is initialized
     _loadSavedAddress();
   }
 
-  // Method to load the saved address
   void _loadSavedAddress() {
     final addressProvider = Provider.of<AddressProvider>(context, listen: false);
-    addressProvider.loadAddress();  // Load the saved address from SharedPreferences
+    addressProvider.loadAddress();
   }
 
-  // Method to delete the saved address
   void _deleteSavedAddress() {
     final addressProvider = Provider.of<AddressProvider>(context, listen: false);
-    addressProvider.clearAddress();  // Clear the saved address from SharedPreferences
-
-    // Optionally, reset the form fields
+    addressProvider.clearAddress();
     _nameController.clear();
     _addressController.clear();
     _phoneController.clear();
     _pincodeController.clear();
-
-    // Show confirmation that the address was deleted
+    setState(() => _selectedLocation = null);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Saved address deleted')),
     );
+  }
+
+  void _pickLocationOnMap() async {
+    LatLng? pickedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => MapScreen()),
+    );
+    if (pickedLocation != null) {
+      setState(() => _selectedLocation = pickedLocation);
+    }
   }
 
   @override
@@ -56,7 +64,7 @@ class _AddressPageState extends State<AddressPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Enter Delivery Address'),
+        title: const Text('Delivery Address'),
         backgroundColor: Colors.orange,
       ),
       body: Padding(
@@ -65,170 +73,68 @@ class _AddressPageState extends State<AddressPage> {
           key: _formKey,
           child: ListView(
             children: [
-              const Text(
-                'Delivery Address',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              
-              // Section for saved address (if available)
-              addressProvider.address != null
-                  ? Stack(
+              if (addressProvider.address != null) ...[
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const Text('Saved Address', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 10),
+                        Text('Name: ${addressProvider.address!.street}'),
+                        Text('Address: ${addressProvider.address!.city}, ${addressProvider.address!.state}, ${addressProvider.address!.zipCode}, ${addressProvider.address!.country}'),
+                        Text('Phone: ${_phoneController.text.isNotEmpty ? _phoneController.text : 'N/A'}'),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Saved Address:',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 10),
-                            Text('Name: ${addressProvider.address?.street ?? 'N/A'}'),
-                            Text('Address: ${addressProvider.address?.city ?? 'N/A'}, ${addressProvider.address?.state ?? 'N/A'}, ${addressProvider.address?.zipCode ?? 'N/A'}, ${addressProvider.address?.country ?? 'N/A'}'),
-                            Text('Phone: ${addressProvider.address?.street ?? 'N/A'}'), // For illustration. Replace with actual data.
-                            const SizedBox(height: 20),
                             ElevatedButton(
                               onPressed: () {
-                                // Autofill form fields with saved address
                                 _nameController.text = addressProvider.address!.street;
                                 _addressController.text = addressProvider.address!.city;
-                                _phoneController.text = 'Saved Phone'; // Use saved phone if available
                                 _pincodeController.text = addressProvider.address!.zipCode;
+                                setState(() => _isAddingNewAddress = true);
                               },
-                              child: const Text('Use This Address for Next Order'),
+                              child: const Text('Use This Address'),
                             ),
-                            const Divider(),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: _deleteSavedAddress,
+                            ),
                           ],
                         ),
-                        
-                        // Delete Button in the top-right corner
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 28),
-                            onPressed: _deleteSavedAddress,
-                          ),
-                        ),
                       ],
-                    )
-                  : const SizedBox(),
-
-              // Toggle Button for Adding New Address
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Add New Address:',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      _isAddingNewAddress ? Icons.remove_circle : Icons.add_circle,
-                      color: Colors.orange,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isAddingNewAddress = !_isAddingNewAddress;
-                      });
-                    },
                   ),
-                ],
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              SwitchListTile(
+                title: const Text('Add New Address', style: TextStyle(fontWeight: FontWeight.bold)),
+                value: _isAddingNewAddress,
+                activeColor: Colors.orange,
+                onChanged: (value) => setState(() => _isAddingNewAddress = value),
               ),
-              
-              // Add New Address Form (Visible only when _isAddingNewAddress is true)
-              _isAddingNewAddress
-                  ? Column(
-                      children: [
-                        const SizedBox(height: 10),
-                        
-                        // Name Input
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Full Name',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
 
-                        // Address Input
-                        TextFormField(
-                          controller: _addressController,
-                          decoration: const InputDecoration(
-                            labelText: 'Address',
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 3,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your address';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
+              if (_isAddingNewAddress) _buildAddressForm(),
 
-                        // Phone Number Input
-                        TextFormField(
-                          controller: _phoneController,
-                          decoration: const InputDecoration(
-                            labelText: 'Phone Number',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your phone number';
-                            } else if (value.length != 10) {
-                              return 'Phone number must be 10 digits';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _pickLocationOnMap,
+                child: const Text('Pick Location on Map'),
+              ),
 
-                        // Pincode Input
-                        TextFormField(
-                          controller: _pincodeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Pincode',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your pincode';
-                            } else if (value.length != 6) {
-                              return 'Pincode must be 6 digits';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 40),
-                      ],
-                    )
-                  : const SizedBox(),
-
-              // Proceed to Order Button
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                   onPressed: _submitAddress,
-                  child: const Text(
-                    'Proceed to Order',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text('Proceed to Order', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -238,41 +144,61 @@ class _AddressPageState extends State<AddressPage> {
     );
   }
 
-  // Method to handle form submission
+  Widget _buildAddressForm() {
+    return Column(
+      children: [
+        _buildTextField(_nameController, 'Full Name', TextInputType.text),
+        _buildTextField(_addressController, 'Address', TextInputType.streetAddress, maxLines: 3),
+        _buildTextField(_phoneController, 'Phone Number', TextInputType.phone),
+        _buildTextField(_pincodeController, 'Pincode', TextInputType.number),
+      ],
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, TextInputType type, {int maxLines = 1}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(labelText: label, border: OutlineInputBorder()),
+        keyboardType: type,
+        maxLines: maxLines,
+        validator: (value) {
+          if (value == null || value.isEmpty) return 'Please enter $label';
+          if (label == 'Phone Number' && value.length != 10) return 'Phone number must be 10 digits';
+          if (label == 'Pincode' && value.length != 6) return 'Pincode must be 6 digits';
+          return null;
+        },
+      ),
+    );
+  }
+
   void _submitAddress() {
     if (_formKey.currentState!.validate()) {
       final addressProvider = Provider.of<AddressProvider>(context, listen: false);
-
-      // Save the new address if it's valid
       final address = Address(
         street: _nameController.text,
         city: _addressController.text,
-        state: 'State', // You can replace with actual fields
+        state: 'State',
         zipCode: _pincodeController.text,
         country: 'Country',
+        latitude: _selectedLocation?.latitude,
+        longitude: _selectedLocation?.longitude,
       );
-
       addressProvider.saveAddress(address);
-
-      // Proceed to the next page (Order Confirmation)
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => OrderConfirmationPage(
             cartItems: widget.cartItems,
-            totalPrice: _calculateTotalPrice(),
+            totalPrice: _calculateTotalPrice(widget),
           ),
         ),
       );
     }
   }
-
-  // Calculate the total price of the items in the cart
-  double _calculateTotalPrice() {
-    double totalPrice = 0.0;
-    for (var item in widget.cartItems) {
-      totalPrice += item['price'] * item['quantity'];
-    }
-    return totalPrice;
-  }
 }
+ double _calculateTotalPrice(dynamic widget) {
+    return widget.cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']);
+  }
+

@@ -17,11 +17,16 @@ dependencies:
   cloud_firestore: ^5.6.1
   firebase_auth_web: ^5.8.13
   provider: ^6.0.3
-  intl: ^0.18.1
+  intl: ^0.20.2
   cached_network_image: ^3.2.3
   shared_preferences: ^2.4.0
   image_picker: ^0.8.4+5
   url_launcher: ^6.0.20
+  upi_pay: ^1.1.0
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
+  geocoding: ^2.1.0
+  
 
 
 dev_dependencies:
@@ -43,6 +48,7 @@ flutter:
     - assets/images/rest3.jpg
     - assets/images/rest4.jpg
     - assets/images/rest5.jpg
+    - assets/images/rest6.jpg
     - assets/images/profile.jpg
     - assets/images/loginbackground.jpg
     - assets/images/applogo.jpg
@@ -55,4 +61,5 @@ flutter:
     - assets/images/dessert1.jpg
     - assets/images/dessert2.jpg
     - assets/images/logo.jpg
+    - assets/images/default_avatar.jpg
 

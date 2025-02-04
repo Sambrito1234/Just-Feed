@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_1/screen/address_page.dart';
 import 'login.dart'; // Import LoginPage
 import '../widgets/category_card.dart'; // CategoryCard Widget
 import '../widgets/restaurant_card.dart'; // RestaurantCard Widget
@@ -176,6 +177,16 @@ class HomePage extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfilePage()));
               },
             ),
+            ListTile(
+  leading: const Icon(Icons.location_on),
+  title: const Text('Address'),
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddressPage(cartItems: [],)),
+    );
+  },
+),
             ListTile(
               leading: const Icon(Icons.history),
               title: const Text('Order History'),

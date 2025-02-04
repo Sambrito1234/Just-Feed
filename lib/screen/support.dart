@@ -1,7 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'chat.dart';
 
 class SupportPage extends StatelessWidget {
+  const SupportPage({super.key});
+
+  Future<void> _launchEmail(String email) async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: email,
+    );
+    if (await canLaunch(emailUri.toString())) {
+      await launch(emailUri.toString());
+    } else {
+      throw 'Could not launch email client';
+    }
+  }
+
+  Future<void> _launchPhone(String phoneNumber) async {
+    final Uri phoneUri = Uri(
+      scheme: 'tel',
+      path: phoneNumber,
+    );
+    if (await canLaunchUrlString(phoneUri.toString())) {
+      await launchUrlString(phoneUri.toString());
+    } else {
+      throw 'Could not launch phone dialer';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,32 +54,28 @@ class SupportPage extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.email),
               title: const Text('Email'),
-              subtitle: const Text('support@justfeed.com'),
+              subtitle: const Text('sambritolpu@gmail.com'),
               onTap: () async {
-                final Uri emailUri = Uri(
-                  scheme: 'mailto',
-                  path: 'support@justfeed.com',
-                );
-                if (await canLaunch(emailUri.toString())) {
-                  await launch(emailUri.toString());
-                } else {
-                  // Handle the error
+                try {
+                  await _launchEmail('sambritolpu@gmail.com');
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not launch email client')),
+                  );
                 }
               },
             ),
             ListTile(
               leading: const Icon(Icons.phone),
               title: const Text('Phone'),
-              subtitle: const Text('+91 12345 67890'),
+              subtitle: const Text('+91 6294601401'),
               onTap: () async {
-                final Uri phoneUri = Uri(
-                  scheme: 'tel',
-                  path: '+911234567890',
-                );
-                if (await canLaunch(phoneUri.toString())) {
-                  await launch(phoneUri.toString());
-                } else {
-                  // Handle the error
+                try {
+                  await _launchPhone('+91 6294601401');
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not launch phone dialer')),
+                  );
                 }
               },
             ),
@@ -60,8 +84,10 @@ class SupportPage extends StatelessWidget {
               title: const Text('Chat with Us'),
               subtitle: const Text('Available 24/7'),
               onTap: () {
-                // Handle chat action
-                // You can integrate a chat SDK or navigate to a chat screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChatScreen()),
+                );
               },
             ),
           ],
